@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #333;
+            color: white;
+            height: 100vh;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        #game {
+            border: 2px solid white;
+        }
+        
+        #canvas {
+            background-color: black;
+        }
+        
+        .score-board {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+
+        #game-over {
+            display: none;
+            font-size: 24px;
+            color: red;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Juego de la Serpiente</h1>
+    <div id="game-over">Perdiste! Puntuación final: <span id="final-score">0</span></div>
+    <div id="game">
+        <canvas id="canvas"></canvas>
+    </div>
+    <div class="score-board">
+        <p>Puntuación: <span id="score">0</span></p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverDisplay = document.getElementById('game-over');
+        const finalScoreDisplay = document.getElementById('final-score');
+        let gameOver = false;
+
+        // Tamaño del canvas
+        canvas.width = 400;
+        canvas.height = 400;
+
+        const tamañoBloque = 20;
+        let velocidadX = 0;
+        let velocidadY = 0;
+        let serpiente = [{ x: 200, y: 200 }];
+        let comida = { x: 100, y: 100 };
+        let puntuacion = 0;
+
+        // Dibujar la serpiente
+        function dibujarSerpiente() {
+            serpiente.forEach(segmento => {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(segmento.x, segmento.y, tamañoBloque, tamañoBloque);
+            });
+        }
+
+        // Mover la serpiente
+        function moverSerpiente() {
+            const cabeza = { x: serpiente[0].x + velocidadX, y: serpiente[0].y + velocidadY };
+            serpiente.unshift(cabeza);
+
+            // Si la serpiente come la comida
+            if (cabeza.x === comida.x && cabeza.y === comida.y) {
+                puntuacion += 1;
+                document.getElementById('score').innerText = puntuacion;
+                generarComida();
+            } else {
+                serpiente.pop();
+            }
+        }
+
+        // Generar comida en posiciones aleatorias
+        function generarComida() {
+            comida.x = Math.floor(Math.random() * (canvas.width / tamañoBloque)) * tamañoBloque;
+            comida.y = Math.floor(Math.random() * (canvas.height / tamañoBloque)) * tamañoBloque;
+        }
+
+        // Dibujar la comida como una manzana
+        function dibujarComida() {
+            ctx.font = '20px Arial';  // Tamaño del emoji
+            ctx.fillText('🍎', comida.x, comida.y + tamañoBloque);  // Ajustamos para que el emoji se dibuje correctamente
+        }
+
+        // Función principal del juego
+        function juego() {
+            if (!gameOver) {
+                if (comprobarColision()) {
+                    gameOver = true;
+                    mostrarGameOver();
+                    return;
+                }
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                dibujarComida();
+                moverSerpiente();
+                dibujarSerpiente();
+            }
+        }
+
+        // Comprobar colisiones
+        function comprobarColision() {
+            const cabeza = serpiente[0];
+
+            // Colisión con los bordes
+            if (cabeza.x < 0 || cabeza.x >= canvas.width || cabeza.y < 0 || cabeza.y >= canvas.height) {
+                return true;
+            }
+
+            // Colisión con el cuerpo
+            for (let i = 1; i < serpiente.length; i++) {
+                if (cabeza.x === serpiente[i].x && cabeza.y === serpiente[i].y) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Mostrar el mensaje de Game Over
+        function mostrarGameOver() {
+            gameOverDisplay.style.display = 'block';
+            finalScoreDisplay.innerText = puntuacion;
+        }
+
+        // Reiniciar el juego
+        function reiniciarJuego() {
+            gameOver = false;
+            puntuacion = 0;
+            document.getElementById('score').innerText = puntuacion;
+            velocidadX = 0;
+            velocidadY = 0;
+            serpiente = [{ x: 200, y: 200 }];
+            generarComida();
+            gameOverDisplay.style.display = 'none';
+        }
+
+        // Controlar la serpiente con el teclado
+        document.addEventListener('keydown', (event) => {
+            if (!gameOver) {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        if (velocidadY === 0) {
+                            velocidadX = 0;
+                            velocidadY = -tamañoBloque;
+                        }
+                        break;
+                    case 'ArrowDown':
+                        if (velocidadY === 0) {
+                            velocidadX = 0;
+                            velocidadY = tamañoBloque;
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        if (velocidadX === 0) {
+                            velocidadX = -tamañoBloque;
+                            velocidadY = 0;
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (velocidadX === 0) {
+                            velocidadX = tamañoBloque;
+                            velocidadY = 0;
+                        }
+                        break;
+                }
+            } else if (event.key === 'Enter') {
+                reiniciarJuego();
+            }
+        });
+
+        // Generar comida al inicio
+        generarComida();
+
+        // Ejecutar el juego en intervalos regulares
+        setInterval(juego, 100);
+    </script>
+
+</body>
+</html>
